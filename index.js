@@ -1,16 +1,6 @@
 require('dotenv').config();
-const express = require("express");
+
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
-
-const app = express();
-
-app.get("/", (req, res) => {
-    res.send("Bot activo");
-});
-
-app.listen(3000, () => {
-    console.log("Servidor activo en puerto 3000");
-});
 
 const client = new Client({
     intents: [
