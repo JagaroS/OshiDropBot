@@ -5,7 +5,8 @@ const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMembers
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.MessageContent
     ]
 });
 
@@ -79,6 +80,23 @@ client.on('guildMemberAdd', async (member) => {
         .setColor('#ff66cc');
 
     canal.send({ embeds: [embed] });
+});
+
+client.on('messageCreate', (message) => {
+
+    if (message.author.bot) return;
+
+    const content = message.content.toLowerCase();
+
+    const reactions = [
+        { word: "keria", emoji: "<:nyaplead:1513294673274343434>" },
+    ];
+
+    for (const item of reactions) {
+        if (content.includes(item.word)) {
+            message.react(item.emoji).catch(() => {});
+        }
+    }
 });
 
 client.login(process.env.TOKEN);
