@@ -70,6 +70,8 @@ function getRandomGif(list) {
     }
 }
 
+let ultimoSorteo = null;
+
 client.once('ready', () => {
     console.log(`✅ Conectado como ${client.user.tag}`);
 });
@@ -100,9 +102,9 @@ client.on('messageCreate', async (message) => {
 
     if (message.author.bot) return;
 
+    // Reacción automática
     const content = message.content.toLowerCase();
 
-    // REACCIONES AUTOMÁTICAS
     const reactions = [
         { word: "keria", emoji: "<:nyaplead:1513294673274343434>" },
     ];
@@ -113,7 +115,7 @@ client.on('messageCreate', async (message) => {
         }
     }
 
-    // COMANDOS
+    // Prefijo
     const prefix = "o!";
 
     if (!message.content.startsWith(prefix)) return;
@@ -121,13 +123,75 @@ client.on('messageCreate', async (message) => {
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
 
+    // Ping
     if (command === "ping") {
         return message.reply("🏓 Pong!");
     }
 
+    // Hola
     if (command === "hola") {
         return message.reply(`¡Hola ${message.author}! 👋`);
     }
+
+    // Crear sorteo
+    if (command === "sorteo") {
+
+        const premio = args.join(" ");
+
+        if (!premio) {
+            return message.reply("Uso: o!sorteo <premio>");
+        }
+
+        const embed = new EmbedBuilder()
+            .setTitle("🎉 SORTEO 🎉")
+            .setDescription(
+                `🏆 **Premio:** ${premio}\n\n` +
+                `🎟️ Reacciona con 🎉 para participar.\n\n` +
+                `🍀 ¡Mucha suerte a todos!`
+            )
+            .setColor("#ff66cc");
+
+        const msg = await message.channel.send({
+            embeds: [embed]
+        });
+
+        await msg.react("🎉");
+
+        ultimoSorteo = msg.id;
+
+        return;
+    }
+
+    // Finalizar sorteo
+    if (command === "finalizar") {
+
+        if (!ultimoSorteo) {
+            return message.reply("No hay sorteos activos.");
+        }
+
+        const mensaje = await message.channel.messages.fetch(ultimoSorteo);
+
+        const reaccion = mensaje.reactions.cache.get("🎉");
+
+        if (!reaccion) {
+            return message.reply("No hubo participantes.");
+        }
+
+        const usuarios = await reaccion.users.fetch();
+
+        const participantes = usuarios.filter(u => !u.bot);
+
+        if (participantes.size === 0) {
+            return message.reply("No hubo participantes.");
+        }
+
+        const ganador = participantes.random();
+
+        message.channel.send(
+            `🎉 ¡Felicidades ${ganador}! Has ganado el sorteo.`
+        );
+    }
+
 });
 
 
