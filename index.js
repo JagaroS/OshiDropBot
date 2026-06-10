@@ -71,6 +71,8 @@ function getRandomGif(list) {
 }
 
 let ultimoSorteo = null;
+let ultimoPremio = null;
+let ultimoGanador = null;
 
 client.once('ready', () => {
     console.log(`✅ Conectado como ${client.user.tag}`);
@@ -136,18 +138,49 @@ client.on('messageCreate', async (message) => {
     // Crear sorteo
     if (command === "sorteo") {
 
+        if (!message.member.permissions.has("ManageMessages")) {
+            return message.reply(
+                "❌ Solo los moderadores pueden crear sorteos."
+            );
+        }
+
+        const tiempoTexto = args.shift();
+
+        if (!tiempoTexto) {
+            return message.reply(
+                "Uso: o!sorteo <tiempo> <premio>\nEjemplo: o!sorteo 1m Nitro"
+            );
+        }
+
+        let tiempo;
+
+        if (tiempoTexto.endsWith("s")) {
+            tiempo = parseInt(tiempoTexto) * 1000;
+        }
+        else if (tiempoTexto.endsWith("m")) {
+            tiempo = parseInt(tiempoTexto) * 60 * 1000;
+        }
+        else if (tiempoTexto.endsWith("h")) {
+            tiempo = parseInt(tiempoTexto) * 60 * 60 * 1000;
+        }
+        else {
+            return message.reply(
+                "Formato de tiempo inválido. Usa s, m o h."
+            );
+        }
+
         const premio = args.join(" ");
 
         if (!premio) {
-            return message.reply("Uso: o!sorteo <premio>");
+            return message.reply("Debes indicar un premio.");
         }
 
         const embed = new EmbedBuilder()
             .setTitle("🎉 SORTEO 🎉")
             .setDescription(
                 `🏆 **Premio:** ${premio}\n\n` +
-                `🎟️ Reacciona con 🎉 para participar.\n\n` +
-                `🍀 ¡Mucha suerte a todos!`
+                `⏳ Duración: ${tiempoTexto}\n\n` +
+                `🎟️ Reacciona con 🎉 para participar.`
             )
             .setColor("#ff66cc");
 
@@ -158,39 +191,110 @@ client.on('messageCreate', async (message) => {
         await msg.react("🎉");
 
         ultimoSorteo = msg.id;
+        ultimoPremio = premio;
+
+        setTimeout(async () => {
+
+            try {
+
+                const mensaje = await message.channel.messages.fetch(msg.id);
+
+                const reaccion =
+                    mensaje.reactions.cache.get("🎉");
+
+                if (!reaccion) {
+                    return message.channel.send(
+                        `❌ El sorteo de **${premio}** terminó sin participantes.`
+                    );
+                }
+
+                const usuarios =
+                    await reaccion.users.fetch();
+
+                const participantes =
+                    usuarios.filter(u => !u.bot);
+
+                if (participantes.size === 0) {
+                    return message.channel.send(
+                        `❌ El sorteo de **${premio}** terminó sin participantes.`
+                    );
+                }
+
+                const ganador = participantes.random();
+
+                ultimoGanador = ganador.id;
+
+                message.channel.send(
+                    `🎉 ¡Felicidades ${ganador}! Ganaste **${premio}**`
+                );
+
+            } catch (err) {
+                console.error(err);
+            }
+
+        }, tiempo);
 
         return;
     }
 
-    // Finalizar sorteo
-    if (command === "finalizar") {
+    //Reroll sorteo
+    if (command === "reroll") {
 
-        if (!ultimoSorteo) {
-            return message.reply("No hay sorteos activos.");
-        }
-
-        const mensaje = await message.channel.messages.fetch(ultimoSorteo);
-
-        const reaccion = mensaje.reactions.cache.get("🎉");
-
-        if (!reaccion) {
-            return message.reply("No hubo participantes.");
-        }
-
-        const usuarios = await reaccion.users.fetch();
-
-        const participantes = usuarios.filter(u => !u.bot);
-
-        if (participantes.size === 0) {
-            return message.reply("No hubo participantes.");
-        }
-
-        const ganador = participantes.random();
-
-        message.channel.send(
-            `🎉 ¡Felicidades ${ganador}! Has ganado el sorteo.`
+    if (!message.member.permissions.has("ManageMessages")) {
+        return message.reply(
+            "❌ Solo los moderadores pueden usar reroll."
         );
     }
+
+    if (!ultimoSorteo) {
+        return message.reply(
+            "❌ No hay un sorteo reciente."
+        );
+    }
+
+    try {
+
+        const mensaje =
+            await message.channel.messages.fetch(
+                ultimoSorteo
+            );
+
+        const reaccion =
+            mensaje.reactions.cache.get("🎉");
+
+        if (!reaccion) {
+            return message.reply(
+                "❌ No se encontraron participantes."
+            );
+        }
+
+        const usuarios =
+            await reaccion.users.fetch();
+
+        const participantes =
+            usuarios.filter(
+                u => !u.bot && u.id !== ultimoGanador
+            );
+
+        if (participantes.size === 0) {
+            return message.reply(
+                "❌ No se encontraron participantes."
+            );
+        }
+
+        const ganador =
+            participantes.random();
+
+        ultimoGanador = ganador.id;
+
+        message.channel.send(
+            `🔄 Nuevo ganador: ${ganador}\n🏆 Premio: **${ultimoPremio}**`
+        );
+
+    } catch (err) {
+        console.error(err);
+    }
+}
 
 });
 
