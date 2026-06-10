@@ -96,12 +96,13 @@ client.on('guildMemberAdd', async (member) => {
     canal.send({ embeds: [embed] });
 });
 
-client.on('messageCreate', (message) => {
+client.on('messageCreate', async (message) => {
 
     if (message.author.bot) return;
 
     const content = message.content.toLowerCase();
 
+    // REACCIONES AUTOMÁTICAS
     const reactions = [
         { word: "keria", emoji: "<:nyaplead:1513294673274343434>" },
     ];
@@ -111,6 +112,23 @@ client.on('messageCreate', (message) => {
             message.react(item.emoji).catch(() => {});
         }
     }
+
+    // COMANDOS
+    const prefix = "o!";
+
+    if (!message.content.startsWith(prefix)) return;
+
+    const args = message.content.slice(prefix.length).trim().split(/ +/);
+    const command = args.shift().toLowerCase();
+
+    if (command === "ping") {
+        return message.reply("🏓 Pong!");
+    }
+
+    if (command === "hola") {
+        return message.reply(`¡Hola ${message.author}! 👋`);
+    }
 });
+
 
 client.login(process.env.TOKEN);
